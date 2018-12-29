@@ -1,9 +1,11 @@
 State Code
 District Code
+Subdistt Code
+Town/Village Code
+Ward Code
 Level
 Name
 TRU
-Area
 No of Household
 Total population Person
 Total population Male
@@ -14,7 +16,7 @@ Population in the age group 0-6 Female
 Scheduled Castes population Person
 Scheduled Castes population Male
 Scheduled Castes population Female
-Scheduled Tribes population Person
+Scheduled Tribes population Person 
 Scheduled Tribes population Male
 Scheduled Tribes population Female
 Literates population Person
