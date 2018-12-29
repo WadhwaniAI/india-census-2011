@@ -4,6 +4,8 @@ import sys
 import os
 import multiprocessing
 import socket
+import re
+import json
 
 """
 A utility to scrape the government of India census website.
@@ -13,6 +15,7 @@ A utility to scrape the government of India census website.
 URL = "http://www.censusindia.gov.in/pca/pca.aspx"
 HEADERS = [('User-agent', 'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.0.1) Gecko/2008071615 Fedora/3.0.1-1.fc9 Firefox/3.0.1')]
 RETRIES = 3
+DISTRICT_IDS = "district_ids.json"
 
 def set_form_attribute(form, attribute, value, br):
     br.select_form(form)
@@ -102,12 +105,24 @@ def state_thread_wrapper(state_id):
         districts.append((state_id, district_id))
     return districts
 
-def main():
-    if len(sys.argv) > 1 and sys.argv[1] == 'header':
-        write_district_census("01", "0", 'header')
-        return
+def progress(districts_with_state):
+    districts = {}
+    for state_id, district_id in districts_with_state:
+        districts[district_id] = True
 
-    mode = 'data'
+    for filename in os.listdir('.'):
+        if re.match(r'\d\d_\d\d\d.csv', filename):
+            district_id = re.search(r'\d\d\d', filename).group(0)
+            assert district_id in districts
+            del districts[district_id]
+
+    print "%d districts remaining" % len(districts)
+
+def read_in_district_ids_or_query():
+    if os.path.isfile(DISTRICT_IDS):
+        with open(DISTRICT_IDS, "r") as json_file:
+            return json.load(json_file)
+
     pool = multiprocessing.Pool(processes=4)
     state_ids = []
 
@@ -121,8 +136,27 @@ def main():
     for result in results:
         districts_with_state += result
 
+    with open(DISTRICT_IDS, "w") as json_file:
+        json.dump(districts_with_state, json_file)
+        return districts_with_state
+
+def main():
+    progress_only = False
+    if len(sys.argv) > 1:
+        if sys.argv[1] == 'header':
+            write_district_census("01", "0", 'header')
+            return
+        elif sys.argv[1] == 'progress':
+            progress_only = True
+
+    mode = 'data'
+
+    districts_with_state = read_in_district_ids_or_query()
     print("done querying for district ids")
-    print(districts_with_state)
+    progress(districts_with_state)
+
+    if progress_only:
+        return
 
     pool.map(district_thread_wrapper, districts_with_state)
 
